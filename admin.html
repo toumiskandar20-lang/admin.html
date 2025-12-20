@@ -2,13 +2,13 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>MaliApp Admin</title>
+  <title>Admin Dashboard - MaliApp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfMUa-8vsUZ_1r5F79iSKOKqMre99lwbI",
@@ -20,30 +20,44 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
 
-    async function loadUsers() {
-      const usersCol = collection(db, "users");
-      const snapshot = await getDocs(usersCol);
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("غير مسموح");
+        window.location.href = "index.html";
+        return;
+      }
 
-      const table = document.getElementById("usersTable");
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists() || userDoc.data().role !== "admin") {
+        alert("أنت لست Admin");
+        window.location.href = "index.html";
+        return;
+      }
+
+      loadUsers();
+    });
+
+    async function loadUsers() {
+      const usersRef = collection(db, "users");
+      const snapshot = await getDocs(usersRef);
+      const list = document.getElementById("users");
+
+      list.innerHTML = "";
 
       snapshot.forEach(doc => {
         const u = doc.data();
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-          <td>${u.email || "-"}</td>
-          <td>${u.balance || 0}</td>
-          <td>${u.level || 1}</td>
-          <td>${u.inviteCode || "-"}</td>
+        const div = document.createElement("div");
+        div.className = "user";
+        div.innerHTML = `
+          <b>${doc.id}</b><br>
+          رصيد: ${u.balance} | مستوى: ${u.level} | دور: ${u.role}
         `;
-
-        table.appendChild(row);
+        list.appendChild(div);
       });
     }
-
-    window.onload = loadUsers;
   </script>
 
   <style>
@@ -55,39 +69,18 @@
     }
     h1 {
       text-align:center;
-      margin-bottom:20px;
     }
-    table {
-      width:100%;
-      border-collapse:collapse;
-      background:#1e1e1e;
-    }
-    th, td {
-      padding:10px;
-      border:1px solid #333;
-      text-align:center;
-    }
-    th {
-      background:#2575fc;
+    .user {
+      background:#222;
+      padding:15px;
+      margin:10px 0;
+      border-radius:10px;
     }
   </style>
 </head>
 
 <body>
-
-<h1>📊 MaliApp Admin Dashboard</h1>
-
-<table>
-  <thead>
-    <tr>
-      <th>Email</th>
-      <th>Balance</th>
-      <th>Level</th>
-      <th>Invite Code</th>
-    </tr>
-  </thead>
-  <tbody id="usersTable"></tbody>
-</table>
-
+  <h1>🔥 Admin Dashboard</h1>
+  <div id="users"></div>
 </body>
 </html>
