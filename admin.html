@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>MaliApp Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfMUa-8vsUZ_1r5F79iSKOKqMre99lwbI",
+      authDomain: "maliapp-63f91.firebaseapp.com",
+      projectId: "maliapp-63f91",
+      storageBucket: "maliapp-63f91.appspot.com",
+      messagingSenderId: "901870433172",
+      appId: "1:901870433172:web:325b2312af72099279d581"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadUsers() {
+      const usersCol = collection(db, "users");
+      const snapshot = await getDocs(usersCol);
+
+      const table = document.getElementById("usersTable");
+
+      snapshot.forEach(doc => {
+        const u = doc.data();
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${u.email || "-"}</td>
+          <td>${u.balance || 0}</td>
+          <td>${u.level || 1}</td>
+          <td>${u.inviteCode || "-"}</td>
+        `;
+
+        table.appendChild(row);
+      });
+    }
+
+    window.onload = loadUsers;
+  </script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background:#111;
+      color:#fff;
+      padding:20px;
+    }
+    h1 {
+      text-align:center;
+      margin-bottom:20px;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      background:#1e1e1e;
+    }
+    th, td {
+      padding:10px;
+      border:1px solid #333;
+      text-align:center;
+    }
+    th {
+      background:#2575fc;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>📊 MaliApp Admin Dashboard</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Email</th>
+      <th>Balance</th>
+      <th>Level</th>
+      <th>Invite Code</th>
+    </tr>
+  </thead>
+  <tbody id="usersTable"></tbody>
+</table>
+
+</body>
+</html>
