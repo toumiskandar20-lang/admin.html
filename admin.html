@@ -1,86 +1,91 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard - MaliApp</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Admin Panel</title>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script type="module">
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfMUa-8vsUZ_1r5F79iSKOKqMre99lwbI",
-      authDomain: "maliapp-63f91.firebaseapp.com",
-      projectId: "maliapp-63f91",
-      storageBucket: "maliapp-63f91.appspot.com",
-      messagingSenderId: "901870433172",
-      appId: "1:901870433172:web:325b2312af72099279d581"
-    };
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  doc
+} from
+"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+/* ================= FIREBASE ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBfMUa-8vsUZ_1r5F79iSKOKqMre99lwbI",
+  authDomain: "maliapp-63f91.firebaseapp.com",
+  projectId: "maliapp-63f91"
+};
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        alert("غير مسموح");
-        window.location.href = "index.html";
-        return;
-      }
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (!userDoc.exists() || userDoc.data().role !== "admin") {
-        alert("أنت لست Admin");
-        window.location.href = "index.html";
-        return;
-      }
+/* ================= LOAD MATCHES ================= */
+const matchesBox = document.getElementById("matches");
 
-      loadUsers();
+async function loadMatches(){
+  matchesBox.innerHTML = "";
+
+  const snap = await getDocs(collection(db,"matches"));
+
+  snap.forEach(docSnap=>{
+    const m = docSnap.data();
+
+    matchesBox.innerHTML += `
+      <div style="border:1px solid #ccc;padding:10px;margin:10px">
+        <b>${m.teamA} vs ${m.teamB}</b><br><br>
+
+        <button onclick="setResult('${docSnap.id}','1')">1</button>
+        <button onclick="setResult('${docSnap.id}','X')">X</button>
+        <button onclick="setResult('${docSnap.id}','2')">2</button>
+      </div>
+    `;
+  });
+}
+
+window.setResult = async (matchId, result)=>{
+  // تحديث نتيجة المباراة
+  await updateDoc(doc(db,"matches",matchId),{
+    result: result
+  });
+
+  // تحديث كل الرهانات
+  const q = query(
+    collection(db,"bets"),
+    where("matchId","==",matchId)
+  );
+
+  const snap = await getDocs(q);
+
+  snap.forEach(async betSnap=>{
+    const bet = betSnap.data();
+
+    const status =
+      bet.choice === result ? "win" : "lose";
+
+    await updateDoc(betSnap.ref,{
+      status: status
     });
+  });
 
-    async function loadUsers() {
-      const usersRef = collection(db, "users");
-      const snapshot = await getDocs(usersRef);
-      const list = document.getElementById("users");
+  alert("✅ تم تحديث النتائج");
+};
 
-      list.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const u = doc.data();
-        const div = document.createElement("div");
-        div.className = "user";
-        div.innerHTML = `
-          <b>${doc.id}</b><br>
-          رصيد: ${u.balance} | مستوى: ${u.level} | دور: ${u.role}
-        `;
-        list.appendChild(div);
-      });
-    }
-  </script>
-
-  <style>
-    body {
-      font-family: Arial;
-      background:#111;
-      color:#fff;
-      padding:20px;
-    }
-    h1 {
-      text-align:center;
-    }
-    .user {
-      background:#222;
-      padding:15px;
-      margin:10px 0;
-      border-radius:10px;
-    }
-  </style>
+loadMatches();
+</script>
 </head>
 
 <body>
-  <h1>🔥 Admin Dashboard</h1>
-  <div id="users"></div>
+<h2>لوحة تحكم الأدمن</h2>
+<div id="matches"></div>
 </body>
 </html>
